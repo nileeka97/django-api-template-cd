@@ -7,6 +7,7 @@ env:
   EB_ENVIRONMENT_NAME       : "MyApplication-Environment"
   DEPLOY_PACKAGE_NAME       : "internal-boostnet-backend-dev-deployment-9d28a559f96e80eb89fe0fcef1f8a3a369fd44d4.zip"
   AWS_REGION_NAME           : "us-east-1"
+  EB_PLATFORM_NAME          : "Python"
 
 on:
   push:
@@ -46,6 +47,7 @@ jobs:
     - name: Deploy to Elastic Beanstalk
       run: |
         pip install --upgrade awscli awsebcli
+        eb init -r ${{ env.AWS_REGION_NAME }} -p ${{ env.EB_PLATFORM_NAME }}
         eb deploy
     
     - name: Print nice message on completion of CD Pipeline
