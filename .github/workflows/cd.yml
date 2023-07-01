@@ -20,15 +20,15 @@ jobs:
          aws-region : us-east-1
          
     - name: Copy zip file from S3
-      run : aws s3 cp s3://internal-boostnet-backend-dev-deployments/internal-boostnet-backend-dev-deployment-9d28a559f96e80eb89fe0fcef1f8a3a369fd44d4.zip deploy.zip
+      run : aws s3 cp s3://internal-boostnet-backend-dev-deployments/internal-boostnet-backend-dev-deployment-f99f31af9ded885a59240bf427c89941d88159b5.zip deploy.zip
        
     - name: Deploy to EB
       uses: einaregilsson/beanstalk-deploy@v21
       with:
         aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        application_name: MyApplicationName
-        environment_name: MyApplication-Environment
-        version_label: 12345sds
+        application_name: testing-application
+        environment_name: testing-application-env
+        version_label: Ver-${{ github.sha }}
         region: us-east-1
         deployment_package: deploy.zip
