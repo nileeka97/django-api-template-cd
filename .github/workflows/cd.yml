@@ -1,63 +1,34 @@
-name: Release CD
-env:
-  # TODO: Configure the following environment variables
-  EB_PACKAGE_S3_BUCKET_NAME : "example-dev-deployments"
-  EB_APPLICATION_NAME       : "example"
-  EB_ENVIRONMENT_NAME       : "example-env"
-  DEPLOY_PACKAGE_NAME       : "example-dev-deployment-${{ github.sha }}.zip"
-  AWS_REGION_NAME           : "ap-southeast-2"
-
-on: 
+name: Deploy zip to eb
+on:
   push:
-    branches: 
-      - release
+    branches:
+    - deployment
 
 jobs:
-    push_to_s3:
-       runs-on: ubuntu-latest
-       
-       steps:
-         - name: Git clone our repository
-           uses: actions/checkout@v3
-            
-         - name: Create ZIP deployment package
-           run : zip -r ${{ env.DEPLOY_PACKAGE_NAME }} ./  -x  *.git*
-           
-         - name: Configure my AWS Credentials
-           uses: aws-actions/configure-aws-credentials@v1
-           with:
-             aws-access-key-id    : ${{ secrets.DEPLOYMENTUSER_ACCESS_KEY }}
-             aws-secret-access-key: ${{ secrets.DEPLOYMENTUSER_SECRET_KEY }}
-             aws-region           : ${{ env.AWS_REGION_NAME }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
 
-         - name: Copy our Deployment package to S3 bucket
-           run : aws s3 cp ${{ env.DEPLOY_PACKAGE_NAME }} s3://${{ env.EB_PACKAGE_S3_BUCKET_NAME}}/
+    - name: Checkout source code
+      uses: actions/checkout@v2
+      
+    - name: Configure my AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+         aws-access-key-id    : ${{ secrets..AWS_ACCESS_KEY_ID }}
+         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws-region : us-east-1
          
-         - name: Print nice message on completion of CI Pipeline
-           run : echo "CI Pipeline part finished successfully"
-           
-    deploy_to_eb:
-       runs-on: ubuntu-latest
-       needs: [push_to_s3]
+    - name: Copy zip file from S3
+      run : aws s3 cp s3://internal-boostnet-backend-dev-deployments/internal-boostnet-backend-dev-deployment-9d28a559f96e80eb89fe0fcef1f8a3a369fd44d4.zip deploy.zip
        
-       steps:
-         - name: Configure my AWS Credentials
-           uses: aws-actions/configure-aws-credentials@v1
-           with:
-             aws-access-key-id    : ${{ secrets.DEPLOYMENTUSER_ACCESS_KEY }}
-             aws-secret-access-key: ${{ secrets.DEPLOYMENTUSER_SECRET_KEY }}
-             aws-region           : ${{ env.AWS_REGION_NAME }}
-         
-         - name: Create new ElasticBeanstalk Applicaiton Version
-           run : |
-            aws elasticbeanstalk create-application-version \
-            --application-name ${{ env.EB_APPLICATION_NAME }} \
-            --source-bundle S3Bucket="${{ env.EB_PACKAGE_S3_BUCKET_NAME }}",S3Key="${{ env.DEPLOY_PACKAGE_NAME }}" \
-            --version-label "Ver-${{ github.sha }}" \
-            --description "CommitSHA-${{ github.sha }}" \
-            --process            
-         - name: Deploy our new Application Version
-           run : aws elasticbeanstalk update-environment --environment-name ${{ env.EB_ENVIRONMENT_NAME }} --version-label "Ver-${{ github.sha }}"
-           
-         - name: Print nice message on completion of CD Pipeline
-           run : echo "CD Pipeline part finished successfully" 
+    - name: Deploy to EB
+      uses: einaregilsson/beanstalk-deploy@v21
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: MyApplicationName
+        environment_name: MyApplication-Environment
+        version_label: 12345
+        region: us-east-1
+        deployment_package: deploy.zip
